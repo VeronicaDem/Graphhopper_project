@@ -13,6 +13,8 @@ import logistics.Weighting.CommonWeighting;
 import logistics.Weighting.EcologyWeight;
 import logistics.Weighting.ShortFastestWeighting;
 
+import java.util.LinkedList;
+
 
 public class MyGraphHopper extends GraphHopper {
     // TODO: Как узнать longitude и latitude. i - это что?
@@ -22,7 +24,8 @@ public class MyGraphHopper extends GraphHopper {
         double lng = graph.getNodeAccess().getLongitude(0);
         System.out.println("lat:" + lat + ", lng:" + lng);
         EcologyWeight ecologyWeight = new EcologyWeight(encoder, graph);
-       ShortFastestWeighting shortestWeighting = new ShortFastestWeighting(encoder, 10.0);
+        //TODO Надо откуда-то получить массив областей
+       ShortFastestWeighting shortestWeighting = new ShortFastestWeighting(encoder, 10.0, new LinkedList<>(), graph);
         CommonWeighting commonWeighting = new CommonWeighting(ecologyWeight, shortestWeighting, encoder);
         System.out.println(commonWeighting);
         return commonWeighting;

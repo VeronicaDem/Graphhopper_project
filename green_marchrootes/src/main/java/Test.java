@@ -9,10 +9,12 @@ import com.graphhopper.storage.GraphBuilder;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.QueryResult;
 import com.graphhopper.util.PointList;
-import logistics.MyGraphHopper;
+import logistics.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class Test {
@@ -72,8 +74,13 @@ public class Test {
         System.out.println(graphHopper);
        // System.out.println(encodingManager.supports(TurnWeighting.class.getName()));
         GraphHopper hopper = graphHopper.importOrLoad();
+        MoscowMainStation moscowMainStation = new MoscowMainStation(	37.618423, 55.751244);
+        List<Station> stations = Util.getAllStations(moscowMainStation);
+        List<Area> areas = Util.getAreas(stations);
+        System.out.println(areas);
 
-        GHRequest req = new GHRequest(55.753220, 37.622513, 55.6707134, 37.48150251595267).
+
+        /*GHRequest req = new GHRequest(55.753220, 37.622513, 55.6707134, 37.48150251595267).
                 setWeighting("common").
                 setVehicle("car").
                 setLocale(Locale.US);
@@ -81,7 +88,7 @@ public class Test {
         GHResponse rsp = hopper.route(req);
         System.out.println("points");
         PointList pointList = rsp.getBest().getPoints();
-        System.out.println("точки:" + pointList);
+        System.out.println("точки:" + pointList);*/
         hopper.close();
     }
 }

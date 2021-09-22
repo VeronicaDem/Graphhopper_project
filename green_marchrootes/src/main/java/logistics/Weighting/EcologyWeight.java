@@ -1,12 +1,16 @@
 package logistics.Weighting;
 
 import com.graphhopper.GraphHopper;
+import com.graphhopper.routing.util.AllEdgesIterator;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.util.HintsMap;
 import com.graphhopper.routing.weighting.AbstractWeighting;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.Graph;
+import com.graphhopper.storage.NodeAccess;
+import com.graphhopper.util.EdgeIterator;
 import com.graphhopper.util.EdgeIteratorState;
+import com.graphhopper.util.PointAccess;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
@@ -45,14 +49,20 @@ public class EcologyWeight extends AbstractWeighting {
    private final String TOKEN = "15fe6177b55545a422167f019b00eb11be25df56";
    private double longitude;
    private double latitude;
+   private Graph graph;
+
+   static double min = Double.POSITIVE_INFINITY;
+   private static Map<String, Boolean> LatLngStations;
    public EcologyWeight(FlagEncoder flagEncoder,Graph graph ) {
       super(flagEncoder);
-       double lat = graph.getNodeAccess().getLatitude(0);
-       double lng = graph.getNodeAccess().getLongitude(0);
+      NodeAccess na = graph.getNodeAccess();
+      int length = graph.getNodes();
+       double lat = na.getLatitude(length - 1);
+       double lng = na.getLongitude(length - 1);
+       this.graph = graph;
       this.longitude = lng;
       this.latitude = lat;
    }
-
    private  Map<String, Object> getMeasurements(double lat, double lng) {
       HttpResponse response = null;
       Map<String, Object> res = new HashMap<String, Object>();
@@ -63,6 +73,9 @@ public class EcologyWeight extends AbstractWeighting {
           System.out.println("url=" + "https://api.waqi.info/feed/geo:" + lat + ";" + lng + "/?token=" + TOKEN + " \ncode=" + responseCode);
          HttpEntity entity = response.getEntity();
          JSONObject reply = new JSONObject(EntityUtils.toString(entity));
+         String geo = String.valueOf(reply.getJSONObject("data").getJSONObject("city").get("geo"));
+         geo = geo.substring(1, geo.length() - 1);
+
          JSONObject iaqi = reply.getJSONObject("data").getJSONObject("iaqi");
          res.put("o3", iaqi.has("o3")  ? iaqi.getJSONObject("o3").get("v") : 0);
          res.put("no2", iaqi.has("no2") ? iaqi.getJSONObject("no2").get("v") : 0);
@@ -107,13 +120,23 @@ public class EcologyWeight extends AbstractWeighting {
 
    @Override
    public double getMinWeight(double v) {
-      return 0;
+      min = min > v ? v : min;
+      return min;
    }
 
    @Override
    public double calcWeight(EdgeIteratorState edgeIteratorState, boolean b, int i) {
-      Map<String, Object> measures = getMeasurements(latitude, latitude);
-      return getWeight(measures);
+      NodeAccess na = graph.getNodeAccess();
+      int index = edgeIteratorState.getAdjNode();
+
+
+      System.out.println("indexNode: " + index);
+      double lat = na.getLatitude(index);
+      double lng = na.getLongitude(index);
+      Map<String, Object> measures = getMeasurements(lat, lng);
+      double weight = getWeight(measures);
+      System.out.println("ecology weight:" + weight);
+      return weight;
    }
 
    @Override

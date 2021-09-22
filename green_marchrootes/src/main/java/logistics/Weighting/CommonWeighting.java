@@ -27,8 +27,11 @@ public class CommonWeighting implements Weighting {
 
     @Override
     public double calcWeight(EdgeIteratorState edgeIteratorState, boolean b, int i) {
-
-        return ecologyWeight.calcWeight(edgeIteratorState, b, i)  + shortestWeighting.calcWeight(edgeIteratorState, b, i) * 10;
+        double weightShortest = shortestWeighting.calcWeight(edgeIteratorState, b, i);
+        double weight = ecologyWeight.calcWeight(edgeIteratorState, b, i)  + shortestWeighting.calcWeight(edgeIteratorState, b, i);
+        System.out.println("shortest weight: " + weightShortest);
+        System.out.println("common weight:" + weight);
+        return weight;
     }
 
     @Override

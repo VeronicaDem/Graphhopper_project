@@ -19,8 +19,14 @@ package logistics.Weighting;
 
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.weighting.FastestWeighting;
+import com.graphhopper.storage.Graph;
+import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PMap;
+import logistics.Area;
+import org.apache.xmlgraphics.ps.PSFontUtils;
+
+import java.util.List;
 
 import static logistics.Weighting.TurnCostProvider.NO_TURN_COST_PROVIDER;
 
@@ -36,14 +42,16 @@ public class ShortFastestWeighting extends FastestWeighting {
     private static final String DISTANCE_FACTOR = "short_fastest.distance_factor";
     private final double distanceFactor;
     private final double timeFactor;
-
-    public ShortFastestWeighting(FlagEncoder encoder, PMap map, TurnCostProvider turnCostProvider) {
+    private List<Area> areas;
+    private Graph graph;
+    public ShortFastestWeighting(FlagEncoder encoder, PMap map, TurnCostProvider turnCostProvider, List<Area> areas, Graph graph) {
         super(encoder, map);
         timeFactor = checkBounds(TIME_FACTOR, map.getDouble(TIME_FACTOR, 1), 0, 10);
 
         // default value derived from the cost for time e.g. 25€/hour and for distance 0.5€/km
         distanceFactor = checkBounds(DISTANCE_FACTOR, map.getDouble(DISTANCE_FACTOR, 0.07), 0, 10);
-
+       this.areas = areas;
+       this.graph = graph;
         if (timeFactor < 1e-5 && distanceFactor < 1e-5)
             throw new IllegalArgumentException("[" + NAME + "] one of distance_factor or time_factor has to be non-zero");
     }
@@ -54,14 +62,17 @@ public class ShortFastestWeighting extends FastestWeighting {
 
         return val;
     }
-    public ShortFastestWeighting(FlagEncoder encoder, double distanceFactor) {
-        this(encoder, distanceFactor, NO_TURN_COST_PROVIDER);
+    public ShortFastestWeighting(FlagEncoder encoder, double distanceFactor, List<Area> areas, Graph graph) {
+        this(encoder, distanceFactor, NO_TURN_COST_PROVIDER, areas, graph);
+
     }
 
-    public ShortFastestWeighting(FlagEncoder encoder, double distanceFactor, TurnCostProvider turnCostProvider) {
+    public ShortFastestWeighting(FlagEncoder encoder, double distanceFactor, TurnCostProvider turnCostProvider, List<Area> areas, Graph graph) {
         super(encoder, new PMap());
         this.distanceFactor = checkBounds(DISTANCE_FACTOR, distanceFactor, 0, 10);
         this.timeFactor = 1;
+        this.areas = areas;
+        this.graph = graph;
     }
 
     @Override
@@ -72,6 +83,15 @@ public class ShortFastestWeighting extends FastestWeighting {
     @Override
     public double calcWeight(EdgeIteratorState edgeState, boolean reverse, int i) {
         double time = super.calcWeight(edgeState, reverse, i);
+        NodeAccess na = graph.getNodeAccess();
+        int index = edgeState.getAdjNode();
+        double lat = na.getLatitude(index);
+        double lng = na.getLongitude(index);
+        boolean isOk = false;
+        for(Area area: areas) {
+            if(area.isInner(lat,lng)) isOk = true;
+        }
+        if(!isOk) return Double.POSITIVE_INFINITY;
         return time * timeFactor + edgeState.getDistance() * distanceFactor;
     }
 
